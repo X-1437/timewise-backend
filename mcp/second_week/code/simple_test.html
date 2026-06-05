@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>鸿溯 - 简易测试版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+        }
+        .header h1 {
+            font-size: 1.5rem;
+        }
+        .content {
+            padding: 20px;
+        }
+        .upload-area {
+            margin-bottom: 20px;
+        }
+        .upload-btn {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        .upload-btn:hover {
+            transform: translateY(-1px);
+        }
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 6px;
+        }
+        .status.success {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .chat-area {
+            margin-top: 20px;
+        }
+        .chat-input {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .chat-input input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+        .chat-input input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .send-btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        .messages {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .message {
+            display: flex;
+            gap: 12px;
+        }
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+        .user-message .message-avatar {
+            background: #667eea;
+        }
+        .assistant-message .message-avatar {
+            background: #10b981;
+        }
+        .message-content {
+            flex: 1;
+        }
+        .message-text {
+            padding: 12px 16px;
+            border-radius: 8px;
+            line-height: 1.6;
+        }
+        .user-message .message-text {
+            background: #f3f4f6;
+            color: #111827;
+        }
+        .assistant-message .message-text {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            color: #166534;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>鸿溯 - 时间序列数据分析助手（简易版）</h1>
+        </div>
+        <div class="content">
+            <div class="upload-area">
+                <input type="file" id="fileInput" accept=".csv" style="display: none;">
+                <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                    📁 选择CSV文件
+                </button>
+                <div id="uploadStatus" style="display: none;"></div>
+            </div>
+            
+            <div class="chat-area">
+                <div class="chat-input">
+                    <input type="text" id="messageInput" placeholder="输入你想分析的内容...">
+                    <button class="send-btn" onclick="sendMessage()">发送</button>
+                </div>
+                <div id="messages" class="messages"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api/v1';
+        let currentFileId = null;
+
+        document.getElementById('fileInput').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const statusEl = document.getElementById('uploadStatus');
+            statusEl.style.display = 'block';
+            statusEl.className = 'status';
+            statusEl.textContent = '⏳ 正在上传...';
+
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const response = await fetch(`${API_BASE}/files/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    currentFileId = data.id;
+                    statusEl.className = 'status success';
+                    statusEl.textContent = `✅ 文件 ${data.filename} 上传成功！`;
+                    
+                    addMessage('assistant', `文件 ${data.filename} 上传成功！现在你可以问我关于这个文件的问题了。`);
+                } else {
+                    statusEl.className = 'status error';
+                    statusEl.textContent = '❌ 上传失败';
+                }
+            } catch (error) {
+                statusEl.className = 'status error';
+                statusEl.textContent = '❌ 上传失败：' + error.message;
+            }
+        });
+
+        document.getElementById('messageInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const content = input.value.trim();
+            if (!content) return;
+
+            addMessage('user', content);
+            input.value = '';
+
+            try {
+                const response = await fetch(`${API_BASE}/chat/messages`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        content: content,
+                        fileId: currentFileId
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    addMessage('assistant', data.content);
+                } else {
+                    addMessage('assistant', '抱歉，发生了错误，请稍后重试。');
+                }
+            } catch (error) {
+                addMessage('assistant', '抱歉，发生了错误：' + error.message);
+            }
+        }
+
+        function addMessage(role, content) {
+            const messagesEl = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}-message`;
+            
+            messageDiv.innerHTML = `
+                <div class="message-avatar">${role === 'user' ? '👤' : '🤖'}</div>
+                <div class="message-content">
+                    <div class="message-text">${content}</div>
+                </div>
+            `;
+            
+            messagesEl.appendChild(messageDiv);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
+    </script>
+</body>
+</html>
