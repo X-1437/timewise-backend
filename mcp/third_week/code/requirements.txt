@@ -1,0 +1,11 @@
+fastapi==0.115.0
+uvicorn[standard]==0.32.0
+python-multipart==0.0.12
+python-dotenv==1.0.1
+pydantic>=2.11,<3
+pydantic-settings>=2.8,<3
+pymongo==4.9.2
+motor==3.6.0
+openai==1.54.3
+httpx<0.28
+mcp==1.27.0
