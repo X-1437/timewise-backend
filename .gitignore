@@ -5,3 +5,5 @@ uploads/
 *.csv
 *.xlsx
 *.xls
+mcp/evidence/
+mcp/*/evidence/
