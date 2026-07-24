@@ -1,123 +1,129 @@
-# Timewise 后端 API
+# Timewise Backend
 
-基于 FastAPI + MongoDB 的时序数据分析系统后端服务。
+`timewise-backend` 是“时间序列数据分析助手”项目的后端仓库。
 
-## 技术栈
+本仓库当前承载两类内容：
+- 原有 Web 形态后端基础：`app/`
+- 当前正式交付的对话式 MCP 后端主线：`mcp/src/`
 
-- **框架**: FastAPI
-- **数据库**: MongoDB (时序集合)
-- **数据处理**: pandas, numpy, scipy
-- **认证**: JWT
+因此，这不是一个只有单一后端应用的简单仓库，而是一个保留历史基础并承载正式交付主线的复合型后端仓库。
 
-## 功能模块
+## 当前正式交付口径
 
-1. **用户认证** - 注册、登录、JWT令牌
-2. **项目管理** - 创建、读取、更新、删除项目
-3. **数据接入** - CSV/Excel文件上传与存储
-4. **EDA** - 探索性数据分析（缺失值、异常值、统计量）
-5. **预处理** - 重采样、缺失值填充、异常值处理、噪声过滤
-6. **特征工程**
-   - 时域特征：趋势、季节性、自相关、滞后、滚动统计、差分
-   - 频域特征：FFT、小波变换、PSD、频谱图
-7. **预测** - 时间序列预测
+当前正式交付主线如下：
+- 前端正式仓库：`https://github.com/X-1437/timeswise`（分支：`v2`）
+- 后端正式目录：`mcp/src`
+- 原有业务基础目录：`app`
+- 全周期交付文档目录：`docs/first_week` 至 `docs/fifth_week`
+- 正式交付说明目录：`docs/delivery`
 
-## 环境要求
+## 目录说明
 
-- Python 3.8+
-- MongoDB 5.0+ (建议使用MongoDB Atlas或本地安装)
+### 1. `app/`
 
-## 本地运行
+原有 Web 形态后端基础代码。
 
-### 1. 克隆项目
+该目录保留了传统项目制分析产品的后端实现，包括：
+- 用户认证
+- 项目管理
+- 数据上传
+- EDA
+- 预处理
+- 特征工程
+- 预测
+- 报告
+
+说明：
+- `app/` 是历史业务基础与复用来源
+- 它不作为本次正式交付的主运行目录
+
+### 2. `mcp/src/`
+
+当前正式交付的对话式 MCP 后端目录。
+
+该目录对应前端 `timeswise` 当前实际对接的后端主线，负责：
+- 会话管理
+- 对话驱动分析
+- 文件上传与结果输出
+- 调用 MCP 工具链完成 EDA、预处理、特征、预测和导出
+
+说明：
+- `mcp/src` 是当前正式交付的后端主目录
+- 本次交付、部署接手和演示均以该目录为准
+
+### 3. `mcp/first_week` 至 `mcp/fifth_week`
+
+阶段性代码镜像与周度研发沉淀目录。
+
+说明：
+- 这些目录用于保留项目从第一周到第五周的过程资产
+- 它们属于历史基线和演进证据，不替代 `mcp/src`
+
+### 4. `docs/`
+
+文档目录，分为两类：
+- `docs/first_week` 至 `docs/fifth_week`：全周期周文档
+- `docs/delivery`：最终交付与接手材料
+
+## 本地启动
+
+### 正式后端启动目录
 
 ```bash
-git clone https://github.com/X-1437/timewise-backend.git
-cd timewise-backend
+cd mcp/src
 ```
 
-### 2. 创建虚拟环境
-
-```bash
-python -m venv venv
-
-# Windows
-venv\Scripts\activate
-
-# Linux/Mac
-source venv/bin/activate
-```
-
-### 3. 安装依赖
+### 安装依赖
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. 配置环境变量
+### 环境变量
 
-创建 `.env` 文件：
+参考：
+- `mcp/src/.env.example`
 
-```env
-MONGO_URI=mongodb://localhost:27017
-DATABASE_NAME=timewise
-JWT_SECRET_KEY=your-secret-key-change-in-production
-JWT_ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-```
+至少需要确认以下配置：
+- `MONGODB_URI`
+- `MONGODB_DB_NAME`
+- `OPENAI_API_KEY`
+- `OPENAI_BASE_URL`
+- `OPENAI_MODEL`
 
-### 5. 启动MongoDB
-
-本地启动MongoDB服务，或使用MongoDB Atlas云端数据库。
-
-### 6. 启动服务
+### 启动后端
 
 ```bash
-uvicorn app.main:app --reload
+python backend.py
 ```
 
-服务将在 http://localhost:8000 启动。
+或：
 
-API文档: http://localhost:8000/docs
-
-## API 接口
-
-| 模块 | 路径 | 说明 |
-|------|------|------|
-| 认证 | `/api/v1/auth/register` | 用户注册 |
-| 认证 | `/api/v1/auth/login` | 用户登录 |
-| 项目 | `/api/v1/projects` | CRUD项目 |
-| 数据 | `/api/v1/projects/{id}/data` | 上传数据文件 |
-| EDA | `/api/v1/projects/{id}/eda` | 探索性数据分析 |
-| 预处理 | `/api/v1/projects/{id}/preprocess` | 数据预处理 |
-| 特征 | `/api/v1/projects/{id}/features` | 特征提取 |
-| 预测 | `/api/v1/projects/{id}/forecast` | 时间序列预测 |
-
-## MongoDB 时序集合
-
-项目使用MongoDB时序集合存储处理后的时序数据：
-
-- 集合名称: `time_series_data`
-- 索引: 自动创建 `metadata.project_id` 和 `timestamp` 复合索引
-
-## 目录结构
-
-```
-timewise-backend/
-├── app/
-│   ├── core/           # 核心配置（安全、依赖）
-│   ├── models/         # 数据模型
-│   ├── routers/        # API路由
-│   ├── schemas/        # Pydantic模型
-│   ├── utils/          # 工具函数
-│   ├── config.py       # 配置文件
-│   ├── database.py     # 数据库连接
-│   └── main.py         # 应用入口
-├── uploads/            # 上传文件目录
-├── .env                # 环境变量
-├── requirements.txt    # 依赖列表
-└── run_server.py       # 服务启动脚本
+```bash
+uvicorn backend:app --host 0.0.0.0 --port 8000
 ```
 
-## 许可证
+默认访问地址：
+- `http://localhost:8000`
 
-MIT License
+接口文档：
+- `http://localhost:8000/docs`
+
+## 交付文档
+
+如需查看完整交付材料，建议优先查看：
+- `docs/delivery/9-1_项目交付汇报摘要.md`
+- `docs/delivery/9_项目整体回顾与交付说明.md`
+- `docs/delivery/9-2_项目最终交付清单.md`
+- `docs/delivery/9-3_部署接手说明.md`
+- `docs/delivery/9-4_最终交付结果汇总.md`
+
+## 当前状态
+
+当前项目状态定义为：
+- 正式交付完成
+- 进入部署接收阶段
+
+需要特别区分：
+- 正式交付完成：已完成
+- 目标环境上线完成：待接收方部署与确认
